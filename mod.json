@@ -28,7 +28,8 @@
 	],
 	"resources": {
 		"files": [
-			"resources/icon.png"
+			"resources/icon.png",
+			"resources/mp.png"
 		]
 	}
 }
