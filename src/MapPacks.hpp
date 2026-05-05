@@ -121,8 +121,10 @@ public:
             pack->m_difficulty = static_cast<GJDifficulty>(entry.get<int>("difficulty").unwrapOr(-1));
             pack->m_stars = -10;
             pack->m_coins = -10;
-            pack->m_textColour = ccc3(255, 255, 255);
-            pack->m_barColour = ccc3(255, 255, 255);
+            auto textColor = entry.get<std::vector<int>>("tc").unwrapOr(std::vector<int>{255,255,255});
+            auto barColor = entry.get<std::vector<int>>("bc").unwrapOr(std::vector<int>{255,255,255});
+            pack->m_textColour = ccc3(textColor[0], textColor[1], textColor[2]);
+            pack->m_barColour = ccc3(barColor[0], barColor[1], barColor[2]);
             packsArr->addObject(pack);
             ids += 1;
         }
