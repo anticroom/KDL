@@ -50,7 +50,7 @@ class $modify(MyLevelBrowserLayer, LevelBrowserLayer) {
 
 			auto winSize = CCDirector::get()->getWinSize();
 			auto demonlistButtonSprite = CCMenuItemSpriteExtra::create(
-				CCSprite::create((Mod::get()->getResourcesDir() / "icon.png").string().c_str()),
+				CCSprite::create((Mod::get()->getResourcesDir() / "mp.png").string().c_str()),
 				this,
 				menu_selector(MyLevelBrowserLayer::onKDLButton)
 			);
