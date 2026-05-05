@@ -1,3 +1,5 @@
+# 1.3.0
+- KEANAN PACKS!!!
 # 1.2.0
 - discord and site button
 # 1.1.1
