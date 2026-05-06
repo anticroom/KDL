@@ -4,6 +4,8 @@ using namespace geode::prelude;
 
 #include <Geode/modify/CreatorLayer.hpp>
 #include <Geode/modify/LevelBrowserLayer.hpp>
+#include <Geode/modify/LevelInfoLayer.hpp>
+#include <Geode/modify/LevelCell.hpp>
 #include <Geode/modify/MapPackCell.hpp>
 #include "KDLListLayer.hpp"
 #include "MapPacks.hpp"
@@ -94,5 +96,52 @@ class $modify(KDLMapPackCell, MapPackCell) {
         }
 
         MapPackCell::onClick(sender);
+    }
+};
+
+static std::unordered_map<int, int> g_kdlLevels;
+
+$on_mod(Loaded) {
+    std::thread([] {
+        auto res = web::WebRequest().getSync("https://raw.githubusercontent.com/Therealkeanan00/Keanan-Demon-List-Updated-Geometry-Dash/main/Levels.json");
+        if (!res.ok()) return;
+
+        auto jsonRes = res.json();
+        if (!jsonRes) return;
+
+        auto json = jsonRes.unwrap();
+        auto arr = json.asArray();
+        if (!arr) return;
+
+        for (auto& entry : arr.unwrap()) {
+            auto id = entry.get<int>("id").unwrapOr(-1);
+            auto type = entry.get<int>("demon_type").unwrapOr(1);
+            if (id > 0) g_kdlLevels[id] = type;
+        }
+    }).detach();
+}
+
+class $modify(MyLevelInfoLayer, LevelInfoLayer) {
+    bool init(GJGameLevel* level, bool challenge) {
+        auto it = g_kdlLevels.find(level->m_levelID);
+        if (it != g_kdlLevels.end()) {
+            level->m_difficulty = GJDifficulty::Demon;
+            level->m_demon = 1;
+            level->m_demonDifficulty = it->second;
+        }
+        if (!LevelInfoLayer::init(level, challenge)) return false;
+        return true;
+    }
+};
+
+class $modify(MyLevelCell, LevelCell) {
+    void loadFromLevel(GJGameLevel* level) {
+        auto it = g_kdlLevels.find(level->m_levelID);
+        if (it != g_kdlLevels.end()) {
+            level->m_difficulty = GJDifficulty::Demon;
+            level->m_demon = 1;
+            level->m_demonDifficulty = it->second;
+        }
+        LevelCell::loadFromLevel(level);
     }
 };

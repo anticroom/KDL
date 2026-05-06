@@ -1,3 +1,5 @@
+# 1.4.0
+- Difficulty faces for lvls!
 # 1.3.0
 - KEANAN PACKS!!!
 # 1.2.0
