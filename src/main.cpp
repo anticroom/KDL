@@ -99,7 +99,12 @@ class $modify(KDLMapPackCell, MapPackCell) {
     }
 };
 
-static std::unordered_map<int, int> g_kdlLevels;
+struct KdlEntry {
+    int demonType;
+    std::string rate;
+};
+
+static std::unordered_map<int, KdlEntry> g_kdlLevels;
 
 $on_mod(Loaded) {
     std::thread([] {
@@ -114,21 +119,38 @@ $on_mod(Loaded) {
         if (!arr) return;
 
         for (auto& entry : arr.unwrap()) {
-            auto id = entry.get<int>("id").unwrapOr(-1);
+            auto id   = entry.get<int>("id").unwrapOr(-1);
             auto type = entry.get<int>("demon_type").unwrapOr(1);
-            if (id > 0) g_kdlLevels[id] = type;
+            auto rate = entry.get<std::string>("rate").unwrapOr("");
+            if (id > 0) g_kdlLevels[id] = { type, rate };
         }
     }).detach();
 }
 
+static void rate(GJGameLevel* level) {
+    auto it = g_kdlLevels.find(level->m_levelID);
+    if (it == g_kdlLevels.end()) return;
+    
+    auto& entry = it->second;
+    
+    level->m_difficulty = GJDifficulty::Demon;
+    level->m_demon = 1;
+    level->m_demonDifficulty = entry.demonType;
+    
+    if (entry.rate == "featured") {
+        level->m_featured = 1;
+    } else if (entry.rate == "epic") {
+        level->m_isEpic = 1;
+    } else if (entry.rate == "legendary") {
+        level->m_isEpic = 2;
+    } else if (entry.rate == "mythic") {
+        level->m_isEpic = 3;
+    }
+}
+
 class $modify(MyLevelInfoLayer, LevelInfoLayer) {
     bool init(GJGameLevel* level, bool challenge) {
-        auto it = g_kdlLevels.find(level->m_levelID);
-        if (it != g_kdlLevels.end()) {
-            level->m_difficulty = GJDifficulty::Demon;
-            level->m_demon = 1;
-            level->m_demonDifficulty = it->second;
-        }
+        rate(level);
         if (!LevelInfoLayer::init(level, challenge)) return false;
         return true;
     }
@@ -136,12 +158,7 @@ class $modify(MyLevelInfoLayer, LevelInfoLayer) {
 
 class $modify(MyLevelCell, LevelCell) {
     void loadFromLevel(GJGameLevel* level) {
-        auto it = g_kdlLevels.find(level->m_levelID);
-        if (it != g_kdlLevels.end()) {
-            level->m_difficulty = GJDifficulty::Demon;
-            level->m_demon = 1;
-            level->m_demonDifficulty = it->second;
-        }
+        rate(level);
         LevelCell::loadFromLevel(level);
     }
 };
