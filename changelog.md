@@ -1,3 +1,5 @@
+# 1.4.2
+- backend api changed from github
 # 1.4.1
 - flame thing
 # 1.4.0

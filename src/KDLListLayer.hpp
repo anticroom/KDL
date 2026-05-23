@@ -4,7 +4,7 @@
 #include "CreatorLeaderboardLayer.hpp"
 #include "LeaderboardLayer.hpp"
 
-#define BASE_URL "https://raw.githubusercontent.com/Therealkeanan00/Keanan-Demon-List-Updated-Geometry-Dash/main/"
+#define BASE_URL "https://therealkeanan00s-demon-list.com/api/list/"
 
 using namespace geode::prelude;
 
@@ -144,10 +144,10 @@ protected:
 
         struct Tab { const char* label; const char* url; };
         Tab tabs[] = {
-            {"Nerfed\nVerified", BASE_URL "NerfedVerified.json"},
-            {"Nerfed\nUnverified", BASE_URL "NerfedUnverified.json"},
-            {"Buffed\nVerified", BASE_URL "BuffedVerified.json"},
-            {"Buffed\nUnverified", BASE_URL "BuffedUnverified.json"},
+            {"Nerfed\nVerified", BASE_URL "nerfverif/levels"},
+            {"Nerfed\nUnverified", BASE_URL "nerfunverif/levels"},
+            {"Buffed\nVerified", BASE_URL "buffverif/levels"},
+            {"Buffed\nUnverified", BASE_URL "buffunverif/levels"},
         };
 
         float tabW = 75.0f;
@@ -217,7 +217,7 @@ protected:
 
 
     
-        loadTab(BASE_URL "BuffedVerified.json");
+        loadTab(BASE_URL "buffverif/levels");
 
         auto emptyArr = CCArray::create();
         auto listView = ListView::create(emptyArr, 40.0f, 356.0f, 220.0f);
@@ -259,7 +259,7 @@ public:
             return;
         }
         auto json = jsonRes.unwrap();
-        applyJson(json);
+        applyJson(json["levels"]);
     }
 
     void applyJson(matjson::Value const& json) {
