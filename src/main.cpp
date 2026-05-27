@@ -108,18 +108,18 @@ static std::unordered_map<int, KdlEntry> g_kdlLevels;
 
 $on_mod(Loaded) {
     std::thread([] {
-        auto res = web::WebRequest().getSync("https://raw.githubusercontent.com/Therealkeanan00/Keanan-Demon-List-Updated-Geometry-Dash/main/Levels.json");
+        auto res = web::WebRequest().getSync("https://therealkeanan00s-demon-list.com/api/list/all");
         if (!res.ok()) return;
 
         auto jsonRes = res.json();
         if (!jsonRes) return;
 
-        auto json = jsonRes.unwrap();
+        auto json = jsonRes.unwrap()["levels"];
         auto arr = json.asArray();
         if (!arr) return;
 
         for (auto& entry : arr.unwrap()) {
-            auto id   = entry.get<int>("id").unwrapOr(-1);
+            auto id = entry.get<int>("id").unwrapOr(-1);
             auto type = entry.get<int>("demon_type").unwrapOr(1);
             auto rate = entry.get<std::string>("rate").unwrapOr("");
             if (id > 0) g_kdlLevels[id] = { type, rate };
