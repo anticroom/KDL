@@ -24,6 +24,10 @@ protected:
 
     bool init() {
         if (!CCLayer::init()) return false;
+        if (Mod::get()->getSettingValue<bool>("custom-menu-music")) {
+            GameManager::sharedState()->fadeInMusic((Mod::get()->getResourcesDir() / "music.mp3").string());
+        }
+        
 		auto winSize = CCDirector::get()->getWinSize();
         this->setID("kdl-list-layer");
         this->setKeyboardEnabled(true);
@@ -378,7 +382,7 @@ public:
     }
 
     void onSiteButton(CCObject* sender) {
-        geode::utils::web::openLinkInBrowser("https://sites.google.com/view/therealkeanan00s-demon-list/home"); // whoever is reviewing THIS WILL BE A NORMAL SITE SOON
+        geode::utils::web::openLinkInBrowser("https://therealkeanan00s-demon-list.com/");
     }
 
 	void onBack(CCObject*) {

@@ -94,13 +94,13 @@ public:
     CCArray* makePacks() {
         auto packsArr = CCArray::create();
 
-        auto res = web::WebRequest().getSync("https://raw.githubusercontent.com/Therealkeanan00/Keanan-Demon-List-Updated-Geometry-Dash/main/KeananPacks.json");
+        auto res = web::WebRequest().getSync("https://therealkeanan00s-demon-list.com/api/map-packs");
         if (!res.ok()) return CCArray::create();
 
         auto jsonRes = res.json();
         if (!jsonRes) return CCArray::create();
 
-        auto json = jsonRes.unwrap();
+        auto json = jsonRes.unwrap()["packs"];
         auto arr = json.asArray();
         if (!arr) return CCArray::create();
 

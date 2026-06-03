@@ -1,3 +1,6 @@
+# 1.5.0
+- more backend api changed from github
+- background music
 # 1.4.2
 - backend api changed from github
 # 1.4.1

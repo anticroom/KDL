@@ -76,7 +76,7 @@ protected:
             m_scrollLayer = nullptr;
         }
         
-        auto res = web::WebRequest().getSync("https://raw.githubusercontent.com/Therealkeanan00/Keanan-Demon-List-Updated-Geometry-Dash/main/CreatorLeaderboard.json");
+        auto res = web::WebRequest().getSync("https://therealkeanan00s-demon-list.com/api/cleaderboard");
         if (!res.ok()) return;
 
         auto jsonRes = res.json();
