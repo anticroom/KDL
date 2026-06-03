@@ -1,3 +1,6 @@
+# 1.5.1
+- restore menu music
+- made ery happy
 # 1.5.0
 - more backend api changed from github
 - background music

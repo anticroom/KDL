@@ -25,7 +25,7 @@ protected:
     bool init() {
         if (!CCLayer::init()) return false;
         if (Mod::get()->getSettingValue<bool>("custom-menu-music")) {
-            GameManager::sharedState()->fadeInMusic((Mod::get()->getResourcesDir() / "music.mp3").string());
+            GameManager::sharedState()->fadeInMusic(geode::utils::string::pathToString(Mod::get()->getResourcesDir() / "music.mp3").c_str());
         }
         
 		auto winSize = CCDirector::get()->getWinSize();
@@ -386,10 +386,12 @@ public:
     }
 
 	void onBack(CCObject*) {
+        GameManager::sharedState()->fadeInMenuMusic();
         CCDirector::get()->popSceneWithTransition(0.5f, PopTransition::kPopTransitionFade);
     }
 
     void keyBackClicked() override {
+        GameManager::sharedState()->fadeInMenuMusic();
         CCDirector::get()->popSceneWithTransition(0.5f, PopTransition::kPopTransitionFade);
     }
 
