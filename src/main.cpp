@@ -108,7 +108,7 @@ static std::unordered_map<int, KdlEntry> g_kdlLevels;
 
 $on_mod(Loaded) {
     std::thread([] {
-        auto res = web::WebRequest().getSync("https://therealkeanan00s-demon-list.com/api/list/all");
+        auto res = web::WebRequest().getSync("https://the-kdl.com/api/list/all");
         if (!res.ok()) return;
 
         auto jsonRes = res.json();

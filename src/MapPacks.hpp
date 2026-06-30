@@ -94,7 +94,7 @@ public:
     CCArray* makePacks() {
         auto packsArr = CCArray::create();
 
-        auto res = web::WebRequest().getSync("https://therealkeanan00s-demon-list.com/api/map-packs");
+        auto res = web::WebRequest().getSync("https://the-kdl.com/api/map-packs");
         if (!res.ok()) return CCArray::create();
 
         auto jsonRes = res.json();

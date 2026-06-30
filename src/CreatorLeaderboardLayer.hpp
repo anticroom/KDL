@@ -76,7 +76,7 @@ protected:
             m_scrollLayer = nullptr;
         }
         
-        auto res = web::WebRequest().getSync("https://therealkeanan00s-demon-list.com/api/cleaderboard");
+        auto res = web::WebRequest().getSync("https://the-kdl.com/api/cleaderboard");
         if (!res.ok()) return;
 
         auto jsonRes = res.json();

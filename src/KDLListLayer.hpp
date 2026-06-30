@@ -4,7 +4,7 @@
 #include "CreatorLeaderboardLayer.hpp"
 #include "LeaderboardLayer.hpp"
 
-#define BASE_URL "https://therealkeanan00s-demon-list.com/api/list/"
+#define BASE_URL "https://the-kdl.com/api/list/"
 
 using namespace geode::prelude;
 
@@ -382,7 +382,7 @@ public:
     }
 
     void onSiteButton(CCObject* sender) {
-        geode::utils::web::openLinkInBrowser("https://therealkeanan00s-demon-list.com/");
+        geode::utils::web::openLinkInBrowser("https://the-kdl.com/");
     }
 
 	void onBack(CCObject*) {
