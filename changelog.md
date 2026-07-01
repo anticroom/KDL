@@ -1,3 +1,5 @@
+# 1.5.2
+- new website domain
 # 1.5.1
 - restore menu music
 - made ery happy
