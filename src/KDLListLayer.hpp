@@ -220,8 +220,8 @@ protected:
         m_tabMenu->addChild(m_siteButton);
 
 
-    
-        loadTab(BASE_URL "buffverif/levels");
+
+
 
         auto emptyArr = CCArray::create();
         auto listView = ListView::create(emptyArr, 40.0f, 356.0f, 220.0f);
@@ -230,6 +230,8 @@ protected:
         m_listLayer->setPosition(winSize / 2 - m_listLayer->getScaledContentSize() / 2);
         this->addChild(m_listLayer, 1);
         this->addChild(m_tabMenu, 2);
+
+        loadTab(BASE_URL "buffverif/levels");
 
         return true;
 	}
@@ -268,6 +270,7 @@ public:
 
     void applyJson(matjson::Value const& json) {
         m_allIds.clear();
+        m_currentPage = 0;
         auto result = json.asArray();
         if (!result) {
             return;
@@ -319,10 +322,6 @@ public:
     void onPrevPage(CCObject*) {
         if (m_currentPage <= 0) return;
         m_currentPage--;
-        if (m_listLayer) {
-            m_listLayer->removeFromParent();
-            m_listLayer = nullptr;
-        }
         fetchPage(m_currentPage);
     }
 
@@ -330,10 +329,6 @@ public:
         int totalPages = ((int)m_allIds.size() + 10 - 1) / 10;
         if (m_currentPage >= totalPages - 1) return;
         m_currentPage++;
-        if (m_listLayer) {
-            m_listLayer->removeFromParent();
-            m_listLayer = nullptr;
-        }
         fetchPage(m_currentPage);
     }
 
@@ -345,10 +340,6 @@ public:
     }
 
     void onRefresh(CCObject*) {
-        if (m_listLayer) {
-            m_listLayer->removeFromParent();
-            m_listLayer = nullptr;
-        }
         if (!m_currentUrl.empty())
             loadTab(m_currentUrl);
     }
@@ -356,7 +347,6 @@ public:
     void onEnter() override {
         CCLayer::onEnter();
         GameLevelManager::sharedState()->m_levelManagerDelegate = this;
-        if (!m_allIds.empty()) fetchPage(0);
     }
 
     void onTabPressed(CCObject* sender) {
