@@ -1,4 +1,6 @@
 #include <Geode/Geode.hpp>
+#include <mutex>
+#include <thread>
 
 using namespace geode::prelude;
 
@@ -15,24 +17,23 @@ class $modify(MyCreatorLayer, CreatorLayer) {
 		if (!CreatorLayer::init()) {
 			return false;
 		}
-
+        // what the fuck is your codebase -antic
 		auto KDLButton = CCMenuItemSpriteExtra::create(
-            CCSprite::create((Mod::get()->getResourcesDir() / "icon.png").string().c_str()),
+			CCSprite::create("icon.png"_spr),
 			this,
 			menu_selector(MyCreatorLayer::onKDLButton)
 		);
-
-		auto winSize = CCDirector::get()->getWinSize();
-        auto listMenu = CCMenu::create();
-
-		listMenu->addChild(KDLButton);
 		KDLButton->setID("kdl-Button"_spr);
-		listMenu->updateLayout();
-		if (this->getChildByID("bottom-left-menu")) {
-			auto menu = this->getChildByID("bottom-left-menu");
-            menu->addChild(KDLButton);
-        	menu->updateLayout();
-        }
+
+		if (auto menu = this->getChildByID("bottom-left-menu")) {
+			menu->addChild(KDLButton);
+			menu->updateLayout();
+		} else {
+			auto listMenu = CCMenu::create();
+			listMenu->addChild(KDLButton);
+			listMenu->setPosition({30.0f, 60.0f});
+			this->addChild(listMenu);
+		}
 
 		return true;
 	}
@@ -51,18 +52,12 @@ class $modify(MyLevelBrowserLayer, LevelBrowserLayer) {
 			if (object->m_searchType != SearchType::MapPack) return true;
 
 			auto winSize = CCDirector::get()->getWinSize();
-			auto demonlistButtonSprite = CCMenuItemSpriteExtra::create(
-				CCSprite::create(geode::utils::string::pathToString(Mod::get()->getResourcesDir() / "mp.png").c_str()),
-				this,
-				menu_selector(MyLevelBrowserLayer::onKDLButton)
-			);
-
-			demonlistButtonSprite->setScale(1.0f);
-			auto demonlistButton = CCMenuItemSpriteExtra::create(demonlistButtonSprite, this, menu_selector(MyLevelBrowserLayer::onKDLButton));
+			auto demonlistSprite = CCSprite::create("mp.png"_spr);
+			auto demonlistButton = CCMenuItemSpriteExtra::create(demonlistSprite, this, menu_selector(MyLevelBrowserLayer::onKDLButton));
 			demonlistButton->setID("demonlist-button"_spr);
 			auto menu = CCMenu::create();
 			menu->addChild(demonlistButton);
-			menu->setPosition({winSize.width - demonlistButtonSprite->getContentHeight() / 2.0f - 4.0f, demonlistButtonSprite->getContentHeight() / 2.0f + 54.0f});
+			menu->setPosition({winSize.width - demonlistSprite->getContentHeight() / 2.0f - 4.0f, demonlistSprite->getContentHeight() / 2.0f + 54.0f});
 			menu->setID("demonlist-menu"_spr);
 			addChild(menu, 2);
 
@@ -105,6 +100,7 @@ struct KdlEntry {
 };
 
 static std::unordered_map<int, KdlEntry> g_kdlLevels;
+static std::mutex g_kdlLevelsMutex;
 
 $on_mod(Loaded) {
     std::thread([] {
@@ -122,17 +118,23 @@ $on_mod(Loaded) {
             auto id = entry.get<int>("id").unwrapOr(-1);
             auto type = entry.get<int>("demon_type").unwrapOr(1);
             auto rate = entry.get<std::string>("rate").unwrapOr("");
-            if (id > 0) g_kdlLevels[id] = { type, rate };
+            if (id > 0) {
+                std::lock_guard<std::mutex> lock(g_kdlLevelsMutex);
+                g_kdlLevels[id] = { type, rate };
+            }
         }
     }).detach();
 }
 
 static void rate(GJGameLevel* level) {
-    auto it = g_kdlLevels.find(level->m_levelID);
-    if (it == g_kdlLevels.end()) return;
-    
-    auto& entry = it->second;
-    
+    KdlEntry entry;
+    {
+        std::lock_guard<std::mutex> lock(g_kdlLevelsMutex);
+        auto it = g_kdlLevels.find(level->m_levelID);
+        if (it == g_kdlLevels.end()) return;
+        entry = it->second;
+    }
+
     level->m_difficulty = GJDifficulty::Demon;
     level->m_demon = 1;
     level->m_demonDifficulty = entry.demonType;
