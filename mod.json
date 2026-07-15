@@ -9,7 +9,7 @@
 	"id": "memeking16.kdl",
 	"name": "The Keanan Demon List",
 	"version": "v1.5.3",
-	"developers": ["MEMEKING16", "Therealkeanan00"],
+	"developers": ["MEMEKING16", "Therealkeanan00", "Anticroom"],
 	"description": "a silly list (will update this later)",
 	"dependencies": {
 		"geode.node-ids": ">=v1.20.0"
@@ -36,7 +36,10 @@
 	"resources": {
 		"sprites": [
 			"resources/icon.png",
-			"resources/mp.png"
+			"resources/mp.png",
+			"resources/KDL_game_bg_01_001.png",
+			"resources/KDL_game_bg_01_002.png",
+			"resources/KDL_diffIcon_10_btn_001.png"
 		],
 		"files": [
 			"resources/music.mp3"

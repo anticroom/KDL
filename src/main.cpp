@@ -17,7 +17,9 @@ class $modify(MyCreatorLayer, CreatorLayer) {
 		if (!CreatorLayer::init()) {
 			return false;
 		}
-        // what the fuck is your codebase -antic
+        
+        // what the fuck is your codebase -antic let me fix it :)
+
 		auto KDLButton = CCMenuItemSpriteExtra::create(
 			CCSprite::create("icon.png"_spr),
 			this,
@@ -155,6 +157,16 @@ class $modify(MyLevelInfoLayer, LevelInfoLayer) {
         rate(level);
         if (!LevelInfoLayer::init(level, challenge)) return false;
         return true;
+    }
+
+    void levelDownloadFinished(GJGameLevel* level) {
+        rate(level);
+        LevelInfoLayer::levelDownloadFinished(level);
+    }
+
+    void levelUpdateFinished(GJGameLevel* level, UpdateResponse response) {
+        rate(level);
+        LevelInfoLayer::levelUpdateFinished(level, response);
     }
 };
 

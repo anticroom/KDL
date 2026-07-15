@@ -1,173 +1,230 @@
 #pragma once
 #include <Geode/Geode.hpp>
+#include <Geode/utils/web.hpp>
+#include <thread>
+#include "KDLBackground.hpp"
 
 using namespace geode::prelude;
 
+struct KDLLeaderboardEntry {
+    int rank;
+    std::string name;
+    int points;
+};
+
+class KDLLeaderboardCell : public CCLayer {
+public:
+    static constexpr float CELL_WIDTH = 356.0f;
+    static constexpr float CELL_HEIGHT = 35.0f;
+
+    static KDLLeaderboardCell* create(KDLLeaderboardEntry const& entry, bool creator, int index) {
+        auto ret = new KDLLeaderboardCell();
+        if (ret->init(entry, creator, index)) {
+            ret->autorelease();
+            return ret;
+        }
+        delete ret;
+        return nullptr;
+    }
+
+protected:
+    bool init(KDLLeaderboardEntry const& entry, bool creator, int index) {
+        if (!CCLayer::init()) return false;
+
+        setContentSize({CELL_WIDTH, CELL_HEIGHT});
+
+        auto bg = CCLayerColor::create(ccc4(0, 0, 0, index % 2 == 0 ? 95 : 55), CELL_WIDTH, CELL_HEIGHT);
+        bg->setPosition({0.0f, 0.0f});
+        addChild(bg);
+
+        auto rankLabel = CCLabelBMFont::create(fmt::format("#{}", entry.rank).c_str(), "bigFont.fnt");
+        if (entry.rank == 1) rankLabel->setColor({255, 200, 50});
+        else if (entry.rank == 2) rankLabel->setColor({200, 200, 200});
+        else if (entry.rank == 3) rankLabel->setColor({210, 140, 70});
+        rankLabel->setPosition({25.0f, CELL_HEIGHT / 2.0f});
+        rankLabel->setScale(entry.rank <= 3 ? 0.60f : 0.45f);
+        rankLabel->setID("rank-label");
+        addChild(rankLabel);
+
+        auto nameLabel = CCLabelBMFont::create(entry.name.c_str(), "bigFont.fnt");
+        nameLabel->setAnchorPoint({0.0f, 0.5f});
+        nameLabel->setPosition({55.0f, CELL_HEIGHT / 2.0f});
+        nameLabel->limitLabelWidth(150.0f, 0.55f, 0.0f);
+        nameLabel->setID("name-label");
+        addChild(nameLabel);
+
+        auto ptsLabel = CCLabelBMFont::create(fmt::format("{} pts", entry.points).c_str(), "goldFont.fnt");
+        ptsLabel->setAnchorPoint({1.0f, 0.5f});
+        ptsLabel->setPosition({CELL_WIDTH - 36.0f, CELL_HEIGHT / 2.0f});
+        ptsLabel->setScale(0.45f);
+        ptsLabel->setID("points-label");
+        addChild(ptsLabel);
+
+        CCNode* icon = nullptr;
+        float targetHeight = 13.5f;
+        if (auto smallFrame = CCSpriteFrameCache::get()->spriteFrameByName("difficulty_10_btn_001.png")) {
+            targetHeight = smallFrame->getOriginalSize().height * 0.32f;
+        }
+
+        if (creator) {
+            icon = CCSprite::createWithSpriteFrameName("GJ_hammerIcon_001.png");
+        } else {
+            icon = CCSprite::create("KDL_diffIcon_10_btn_001.png"_spr);
+            if (!icon) icon = CCSprite::createWithSpriteFrameName("difficulty_10_btn_001.png");
+        }
+
+        if (icon) {
+            icon->setScale(targetHeight / icon->getContentHeight());
+            icon->setPosition({CELL_WIDTH - 20.0f, CELL_HEIGHT / 2.0f});
+            icon->setID("points-icon");
+            addChild(icon);
+        }
+
+        return true;
+    }
+};
+
 class LeaderboardLayer : public CCLayer {
 protected:
-    CCNode* m_listNode = nullptr;
-    GJListLayer* m_listLayer = nullptr;
-    ScrollLayer* m_scrollLayer = nullptr;
+    GJListLayer* m_list = nullptr;
+    LoadingCircle* m_loadingCircle = nullptr;
+    CCLabelBMFont* m_countLabel = nullptr;
+    int m_requestId = 0;
 
-    bool init() {
+    virtual const char* title() const { return "K.D.L. Leaderboard"; }
+    virtual const char* url() const { return "https://the-kdl.com/api/lleaderboard"; }
+    virtual bool isCreator() const { return false; }
+    virtual ccColor3B bgColor() const { return {0, 40, 80}; }
+
+    bool init() override {
         if (!CCLayer::init()) return false;
 
         auto winSize = CCDirector::get()->getWinSize();
         this->setKeyboardEnabled(true);
         this->setKeypadEnabled(true);
 
-        // background
-        auto background = CCSprite::create("GJ_gradientBG.png");
-        background->setScaleX(winSize.width / background->getContentSize().width);
-        background->setScaleY(winSize.height / background->getContentSize().height);
-        background->setPosition(winSize / 2);
-        background->setColor({0, 40, 80});
-        this->addChild(background, -1);
+        addKDLBackground(this, bgColor());
 
-        // top "stuff"
-        auto topBar = CCLayerColor::create({0, 0, 0, 120}, winSize.width, 50.0f);
-        topBar->setPosition({0, winSize.height - 50.0f});
-        this->addChild(topBar);
+        m_countLabel = CCLabelBMFont::create("", "goldFont.fnt");
+        m_countLabel->setAnchorPoint({1.0f, 1.0f});
+        m_countLabel->setScale(0.6f);
+        m_countLabel->setPosition({winSize.width - 7.0f, winSize.height - 3.0f});
+        m_countLabel->setID("count-label");
+        this->addChild(m_countLabel, 2);
 
-        // title
-        auto titleLabel = CCLabelBMFont::create("K.D.L List Leaderboard", "goldFont.fnt");
-        titleLabel->setScale(0.7f);
-        titleLabel->setPosition({ winSize.width / 2.0f, winSize.height - 25.0f });
-        this->addChild(titleLabel);
+        auto menu = CCMenu::create();
+        menu->setPosition({0.0f, 0.0f});
+        menu->setID("button-menu");
+        this->addChild(menu, 3);
 
-        //back btn
-        auto backSprite = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
         auto backButton = CCMenuItemSpriteExtra::create(
-            backSprite, this, menu_selector(LeaderboardLayer::onBack)
+            CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png"),
+            this, menu_selector(LeaderboardLayer::onBack)
         );
-        auto backMenu = CCMenu::create();
-        backMenu->addChild(backButton);
-        backMenu->setPosition({25.0f, winSize.height - 25.0f});
-        this->addChild(backMenu);
-        
-        auto refreshSpr = CCSprite::createWithSpriteFrameName("GJ_updateBtn_001.png");
-        auto refreshBtn = CCMenuItemSpriteExtra::create(
-            refreshSpr, this, menu_selector(LeaderboardLayer::onRefresh)
+        backButton->setPosition({25.0f, winSize.height - 25.0f});
+        backButton->setID("back-button");
+        menu->addChild(backButton);
+
+        auto refreshBtnSpr = CCSprite::createWithSpriteFrameName("GJ_updateBtn_001.png");
+        auto refreshButton = CCMenuItemSpriteExtra::create(
+            refreshBtnSpr, this, menu_selector(LeaderboardLayer::onRefresh)
         );
+        refreshButton->setPosition({
+            winSize.width - refreshBtnSpr->getContentWidth() / 2.0f - 4.0f,
+            refreshBtnSpr->getContentHeight() / 2.0f + 4.0f
+        });
+        refreshButton->setID("refresh-button");
+        menu->addChild(refreshButton);
 
-        auto refreshMenu = CCMenu::create();
-        refreshMenu->addChild(refreshBtn);
-        refreshMenu->setPosition({ winSize.width - 25.f, winSize.height - 25.f });
-        this->addChild(refreshMenu);
+        m_list = GJListLayer::create(nullptr, title(), {0, 0, 0, 180}, 356.0f, 220.0f, 0);
+        m_list->setPosition(winSize / 2.0f - m_list->getContentSize() / 2.0f);
+        m_list->setID("list-layer");
+        fitKDLListTitle(m_list);
+        this->addChild(m_list, 3);
 
-        auto emptyArray = CCArray::create();
-        auto listView = ListView::create(emptyArray, 40.0f, 356.0f, 220.0f);
-        m_listLayer = GJListLayer::create(listView, "", {0, 0, 0, 180}, 356.0f, 220.0f, 0);
-        m_listLayer->setPosition(winSize / 2 - m_listLayer->getScaledContentSize() / 2);
-        this->addChild(m_listLayer);
-        
+        m_loadingCircle = LoadingCircle::create();
+        m_loadingCircle->setParentLayer(this);
+        m_loadingCircle->setID("loading-circle");
+        m_loadingCircle->show();
+
         loadLeaderboard();
 
         return true;
     }
 
     void loadLeaderboard() {
-        if (m_listLayer) {
-            m_listLayer->removeFromParent();
-            m_listLayer = nullptr;
+        m_loadingCircle->setVisible(true);
+
+        int requestId = ++m_requestId;
+        std::string requestUrl = url();
+        Ref<LeaderboardLayer> self = this;
+
+        std::thread([self, requestId, requestUrl] {
+            auto res = web::WebRequest().getSync(requestUrl);
+
+            std::vector<KDLLeaderboardEntry> entries;
+            int errorCode = 0;
+
+            if (!res.ok()) {
+                errorCode = res.code();
+            } else {
+                auto jsonRes = res.json();
+                if (!jsonRes.isOk()) {
+                    errorCode = 500;
+                } else {
+                    auto arr = jsonRes.unwrap().asArray();
+                    if (!arr.isOk()) {
+                        errorCode = 500;
+                    } else {
+                        int rank = 1;
+                        for (auto& entry : arr.unwrap()) {
+                            entries.push_back({
+                                rank++,
+                                entry.get<std::string>("name").unwrapOr("Unknown"),
+                                entry.get<int>("points").unwrapOr(0)
+                            });
+                        }
+                    }
+                }
+            }
+
+            Loader::get()->queueInMainThread([self, requestId, errorCode, entries = std::move(entries)] {
+                // ignore stale responses from stuff like refresh spamming
+                if (requestId != self->m_requestId) return;
+                if (errorCode != 0) self->onLoadFailed(errorCode);
+                else self->populateList(entries);
+            });
+        }).detach();
+    }
+
+    void populateList(std::vector<KDLLeaderboardEntry> const& entries) {
+        if (auto listView = m_list->m_listView) {
+            listView->removeFromParent();
+            listView->release();
+            m_list->m_listView = nullptr;
         }
-        if (m_scrollLayer) {
-            m_scrollLayer->removeFromParent();
-            m_scrollLayer = nullptr;
-        }
 
-        auto res = web::WebRequest().getSync("https://the-kdl.com/api/lleaderboard");
-        if (!res.ok()) return;
-
-        auto jsonRes = res.json();
-        if (!jsonRes) return;
-
-        auto json = jsonRes.unwrap();
-        auto arr = json.asArray();
-        if (!arr) return;
-
-        auto winSize = CCDirector::get()->getWinSize();
-
-        auto entries = arr.unwrap();
-        float rowHeight = 40.0f;
-        float listWidth = 356.0f;
-        float listHeight = 220.0f;
-
-        float totalHeight = entries.size() * rowHeight;
-        float contentHeight = std::max(totalHeight, listHeight);
-
-        auto contentLayer = CCLayer::create();
-        contentLayer->setContentSize({listWidth, contentHeight});
-
-        int rank = 1;
+        auto cells = CCArray::create();
+        int index = 0;
         for (auto& entry : entries) {
-            auto name = entry.get<std::string>("name").unwrapOr("Unknown");
-            auto points = entry.get<int>("points").unwrapOr(0);
-            auto id = entry.get<int>("id").unwrapOr(0);
-
-            float y = contentHeight - rank * rowHeight + rowHeight / 2.0f;
-
-            // row background
-            auto rowBackground = CCLayerColor::create(
-                rank % 2 == 0 ? ccColor4B{ 0, 0, 0, 60 } : ccColor4B{ 255, 255, 255, 15 },
-                listWidth, rowHeight
-            );
-            rowBackground->setPosition({ 0, y - rowHeight / 2.0f });
-            contentLayer->addChild(rowBackground);
-
-            // rank label
-            auto rankLeaderboardLayer = CCLabelBMFont::create(
-                ("#" + std::to_string(rank)).c_str(), "bigFont.fnt"
-            );
-            rankLeaderboardLayer->setScale(0.35f);
-            rankLeaderboardLayer->setAnchorPoint({ 0.0f, 0.5f });
-            rankLeaderboardLayer->setPosition({ 8.0f, y });
-            contentLayer->addChild(rankLeaderboardLayer);
-
-            // name label
-            auto nameLeaderboardLayer = CCLabelBMFont::create(name.c_str(), "bigFont.fnt");
-            nameLeaderboardLayer->setScale(0.4f);
-            nameLeaderboardLayer->setAnchorPoint({0.0f, 0.5f});
-            nameLeaderboardLayer->setPosition({45.0f, y});
-            contentLayer->addChild(nameLeaderboardLayer);
-
-            // points label
-            auto pointsLeaderboardLayer = CCLabelBMFont::create(std::to_string(points).c_str(), "bigFont.fnt");
-            pointsLeaderboardLayer->setScale(0.35f);
-            pointsLeaderboardLayer->setAnchorPoint({1.0f, 0.5f});
-            pointsLeaderboardLayer->setPosition({listWidth - 28.0f, y});
-            contentLayer->addChild(pointsLeaderboardLayer);
-
-            auto pointsIcon = CCSprite::createWithSpriteFrameName("difficulty_10_btn_001.png");
-            pointsIcon->setScale(0.4f);
-            pointsIcon->setAnchorPoint({1.0f, 0.5f});
-            pointsIcon->setPosition({listWidth - 8.0f, y});
-            contentLayer->addChild(pointsIcon);
-
-            rank++;
+            cells->addObject(KDLLeaderboardCell::create(entry, isCreator(), index++));
         }
 
-        m_scrollLayer = ScrollLayer::create({listWidth, listHeight - 8.0f});
-        m_scrollLayer->m_contentLayer->setContentSize({listWidth, contentHeight});
-        m_scrollLayer->m_contentLayer->addChild(contentLayer);
+        auto listView = ListView::create(cells, KDLLeaderboardCell::CELL_HEIGHT, 356.0f, 220.0f);
+        listView->retain();
+        m_list->addChild(listView, 6, 9);
+        m_list->m_listView = listView;
 
-        if (contentHeight > listHeight) {
-            m_scrollLayer->m_contentLayer->setPositionY(listHeight - contentHeight);
-        }
+        m_loadingCircle->setVisible(false);
+    }
 
-        if (m_listLayer) {
-            m_listLayer->removeFromParent();
-        }
-
-        m_listLayer = GJListLayer::create(
-            ListView::create(CCArray::create(), rowHeight, listWidth, listHeight),
-            "", { 0, 0, 0, 180 }, listWidth, listHeight, 0
-        );
-        m_listLayer->setPosition(winSize / 2 - m_listLayer->getScaledContentSize() / 2);
-        this->addChild(m_listLayer);
-
-        m_scrollLayer->setPosition(m_listLayer->getPosition() + CCPoint{0.0f, 4.0f});
-        this->addChild(m_scrollLayer);
+    void onLoadFailed(int code) {
+        m_loadingCircle->setVisible(false);
+        FLAlertLayer::create(
+            fmt::format("Load Failed ({})", code).c_str(),
+            "Failed to load leaderboard! Please try again later.. Please Message Keanan about this issue if it persists.",
+            "OK"
+        )->show();
     }
 
     void onRefresh(CCObject*) {
@@ -175,7 +232,7 @@ protected:
     }
 
     void onBack(CCObject*) {
-        CCDirector::get()->popSceneWithTransition(0.5f, PopTransition::kPopTransitionFade);
+        keyBackClicked();
     }
 
     void keyBackClicked() override {
