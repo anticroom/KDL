@@ -1,4 +1,4 @@
-#1.6.0
+# 1.6.0
 - MASSIVE overhall with features and polishing including a credits page, bug fixes, and visual improvements.
 # 1.5.3
 - bug fixing
