@@ -1,7 +1,7 @@
 # The Keanan Demon List!
 Where skill is earned, not given.
 # Info:
-This is the K.D.L.! A **Demon List for Superbuffed Levels**
+This is the K.D.L.! A **Demon List for Superbuffed/Nerfed Levels**
 # How to use:
 Open the Online Menu and click the K.D.L. Button in the bottom left!
 # Credits:

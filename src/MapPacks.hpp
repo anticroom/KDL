@@ -1,6 +1,7 @@
 #pragma once
 #include <Geode/Geode.hpp>
 #include <Geode/utils/web.hpp>
+#include "KDLBackground.hpp"
 
 using namespace geode::prelude;
 
@@ -18,13 +19,7 @@ protected:
         this->setKeypadEnabled(true);
 		
         // background
-		auto background = CCSprite::create("GJ_gradientBG.png");
-        background->setID("background");
-        background->setScaleX(winSize.width / background->getContentSize().width);
-        background->setScaleY(winSize.height / background->getContentSize().height);
-        background->setPosition(winSize / 2);
-        background->setColor({40, 0, 80});
-        this->addChild(background, -1);
+        addKDLBackground(this, {40, 0, 80});
 
         // back arrow
 		auto backSprite = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
@@ -39,7 +34,7 @@ protected:
         topMenu->setPosition({0.0f, 0.0f});
         backButton->setPosition({25.0f, winSize.height - 25.0f});
         topMenu->addChild(backButton);
-        this->addChild(topMenu);
+        this->addChild(topMenu, 2);
 
         // not so top "stuff"  
         m_tabMenu = CCMenu::create();
@@ -53,8 +48,9 @@ protected:
 
         auto listView = CustomListView::create(packsArr, BoomListType::MapPack, 220.0f, 356.0f);
 
-        m_listLayer = GJListLayer::create(listView, "KDL", {0, 0, 0, 180}, 356.0f, 220.0f, 0);
+        m_listLayer = GJListLayer::create(listView, "K.D.L. Map Packs", {0, 0, 0, 180}, 356.0f, 220.0f, 0);
         m_listLayer->setID("list-layer");
+        fitKDLListTitle(m_listLayer);
         m_listLayer->setPosition(winSize / 2 - m_listLayer->getScaledContentSize() / 2);
         this->addChild(m_listLayer, 1);
         this->addChild(m_tabMenu, 2);

@@ -3,6 +3,8 @@
 #include <Geode/utils/web.hpp>
 #include "CreatorLeaderboardLayer.hpp"
 #include "LeaderboardLayer.hpp"
+#include "KDLBackground.hpp"
+#include "KDLCreditsPopup.hpp"
 
 #define BASE_URL "https://the-kdl.com/api/list/"
 
@@ -34,13 +36,8 @@ protected:
         this->setKeypadEnabled(true);
 		
         // background
-		auto background = CCSprite::create("GJ_gradientBG.png");
-        background->setID("background");
-        background->setScaleX(winSize.width / background->getContentSize().width);
-        background->setScaleY(winSize.height / background->getContentSize().height);
-        background->setPosition(winSize / 2);
-        background->setColor({40, 0, 80});
-        this->addChild(background, -1);
+        addKDLBackground(this, {40, 0, 80});
+
 
         // back arrow
 		auto backSprite = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
@@ -98,17 +95,41 @@ protected:
         creatorLeaderboardBkg->setID("button-bkg");
         creatorLeaderboardButton->setID("creator-leaderboard-button");
 
+        // Credits button
+
+        auto creditsNode = CCNode::create();
+        creditsNode->setContentSize({30.0f, 30.0f});
+
+        auto creditsBkg = CCScale9Sprite::create("GJ_button_01.png");
+        creditsBkg->setContentSize({30.0f, 30.0f});
+        creditsBkg->setPosition({15.0f, 15.0f});
+        creditsNode->addChild(creditsBkg);
+
+        auto creditsSprite = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
+        creditsSprite->setScale(0.6f);
+        creditsSprite->setPosition({15.0f, 15.0f});
+        creditsNode->addChild(creditsSprite);
+        auto creditsButton = CCMenuItemSpriteExtra::create(
+            creditsNode, this, menu_selector(KDLListLayer::onOpenCredits)
+        );
+
+        creditsNode->setID("credits-node");
+        creditsBkg->setID("button-bkg");
+        creditsButton->setID("credits-button");
+
         // top "stuff"
 		auto topMenu = CCMenu::create();
         topMenu->setID("top-menu");
         topMenu->addChild(backButton);
         topMenu->addChild(leaderboardButton);
         topMenu->addChild(creatorLeaderboardButton);
+        topMenu->addChild(creditsButton);
         topMenu->setPosition({0.0f, 0.0f});
         backButton->setPosition({25.0f, winSize.height - 25.0f});
-        leaderboardButton->setPosition({65.0f, winSize.height - 25.0f});
-        creatorLeaderboardButton->setPosition({100.0f, winSize.height - 25.0f});
-        this->addChild(topMenu);
+        leaderboardButton->setPosition({25.0f, winSize.height - 65.0f});
+        creatorLeaderboardButton->setPosition({25.0f, winSize.height - 100.0f});
+        creditsButton->setPosition({25.0f, winSize.height - 135.0f});
+        this->addChild(topMenu, 2);
 
         // not so top "stuff"  
         m_tabMenu = CCMenu::create();
@@ -144,7 +165,7 @@ protected:
         auto refreshMenu = CCMenu::create();
         refreshMenu->addChild(refreshBtn);
         refreshMenu->setPosition({ winSize.width - 25.f, winSize.height - 25.f });
-        this->addChild(refreshMenu);
+        this->addChild(refreshMenu, 2);
 
         struct Tab { const char* label; const char* url; };
         Tab tabs[] = {
@@ -282,6 +303,7 @@ public:
             }
             m_allIds.push_back(id.unwrap());
         }
+        updatePageArrows();
         fetchPage(0);
     }
 
@@ -319,10 +341,17 @@ public:
 
     void loadLevelsFailed(const char*) override {}
 
+    void updatePageArrows() {
+        int totalPages = ((int)m_allIds.size() + 10 - 1) / 10;
+        if (m_prevButton) m_prevButton->setVisible(m_currentPage > 0);
+        if (m_nextButton) m_nextButton->setVisible(m_currentPage < totalPages - 1);
+    }
+
     void onPrevPage(CCObject*) {
         if (m_currentPage <= 0) return;
         m_currentPage--;
         fetchPage(m_currentPage);
+        updatePageArrows();
     }
 
     void onNextPage(CCObject*) {
@@ -330,6 +359,7 @@ public:
         if (m_currentPage >= totalPages - 1) return;
         m_currentPage++;
         fetchPage(m_currentPage);
+        updatePageArrows();
     }
 
     void onExit() override {
@@ -391,5 +421,9 @@ public:
 
     void onOpenCreatorLeaderboard(CCObject*) {
         CCDirector::get()->pushScene(CCTransitionFade::create(0.5f, CreatorLeaderboardLayer::scene()));
+    }
+
+    void onOpenCredits(CCObject*) {
+        KDLCreditsPopup::create()->show();
     }
 };
